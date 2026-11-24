@@ -1,0 +1,222 @@
+# ============================================================
+# FlClash (mihomo) 脱敏模板 —— 手机版
+# 说明：此文件不含任何真实 IP / UUID / 密码，可安全提交至 GitHub
+# ============================================================
+
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+ipv6: true
+external-controller: 127.0.0.1:9090
+
+unified-delay: true
+tcp-concurrent: true
+find-process-mode: "off"
+
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+
+dns:
+  enable: true
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "*.local"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
+    - "localhost.ptlogin2.qq.com"
+    - "+.stun.*.*"
+    - "+.stun.*.*.*"
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+
+proxies:
+  # VLESS + REALITY 主用通道
+  - name: "vps-reality"
+    type: vless
+    server: YOUR_VPS_IP
+    port: 20960
+    uuid: YOUR_VLESS_UUID
+    network: tcp
+    udp: true
+    tls: true
+    flow: xtls-rprx-vision
+    servername: YOUR_REALITY_SNI
+    reality-opts:
+      public-key: YOUR_REALITY_PUBLIC_KEY
+      short-id: YOUR_REALITY_SHORT_ID
+    client-fingerprint: chrome
+
+  # Hysteria2 固定单端口
+  - name: "vps-hy2"
+    type: hysteria2
+    server: YOUR_VPS_IP
+    port: 20961
+    password: "YOUR_HY2_PASSWORD"
+    obfs: salamander
+    obfs-password: "YOUR_HY2_OBFS_PASSWORD"
+    sni: www.cisco.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+
+  # Hysteria2 端口跳跃备用
+  - name: "vps-hy2-hop"
+    type: hysteria2
+    server: YOUR_VPS_IP
+    port: 20961
+    ports: "20961,21000-21255"
+    hop-interval: 120
+    password: "YOUR_HY2_PASSWORD"
+    obfs: salamander
+    obfs-password: "YOUR_HY2_OBFS_PASSWORD"
+    sni: www.cisco.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+
+  # Hysteria2 UDP 443 备用通道
+  - name: "vps-hy2-443"
+    type: hysteria2
+    server: YOUR_VPS_IP
+    port: 443
+    password: "YOUR_HY2_443_PASSWORD"
+    obfs: salamander
+    obfs-password: "YOUR_HY2_443_OBFS_PASSWORD"
+    sni: www.cisco.com
+    skip-cert-verify: true
+    alpn:
+      - h3
+
+proxy-groups:
+  - name: "PROXY"
+    type: select
+    proxies:
+      - "vps-reality"
+      - "vps-hy2"
+      - "vps-hy2-hop"
+      - "vps-hy2-443"
+
+rule-providers:
+  reject:
+    type: http
+    behavior: domain
+    format: yaml
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt"
+    path: ./ruleset/reject.yaml
+    interval: 86400
+
+  proxy:
+    type: http
+    behavior: domain
+    format: yaml
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt"
+    path: ./ruleset/proxy.yaml
+    interval: 86400
+
+  direct:
+    type: http
+    behavior: domain
+    format: yaml
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt"
+    path: ./ruleset/direct.yaml
+    interval: 86400
+
+  private:
+    type: http
+    behavior: domain
+    format: yaml
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt"
+    path: ./ruleset/private.yaml
+    interval: 86400
+
+  telegramcidr:
+    type: http
+    behavior: ipcidr
+    format: yaml
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
+    path: ./ruleset/telegramcidr.yaml
+    interval: 86400
+
+  cncidr:
+    type: http
+    behavior: ipcidr
+    format: yaml
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt"
+    path: ./ruleset/cncidr.yaml
+    interval: 86400
+
+  google:
+    type: http
+    behavior: domain
+    format: mrs
+    url: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/google.mrs"
+    path: ./ruleset/google.mrs
+    interval: 86400
+
+  google-ip:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    url: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geoip/google.mrs"
+    path: ./ruleset/google-ip.mrs
+    interval: 86400
+
+  ai:
+    type: http
+    behavior: domain
+    format: mrs
+    url: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-ai-!cn.mrs"
+    path: ./ruleset/category-ai-not-cn.mrs
+    interval: 86400
+
+rules:
+  # 设备专属：校园网直连（按需替换为实际网段）
+  - "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve"
+  - "IP-CIDR,YOUR_CAMPUS_GATEWAY_IP/32,DIRECT,no-resolve"
+
+  # 私有网络
+  - "RULE-SET,private,DIRECT"
+  - "GEOIP,private,DIRECT,no-resolve"
+
+  # Google 与 AI（排在广告拦截前，避免误杀）
+  - "RULE-SET,google,PROXY"
+  - "RULE-SET,google-ip,PROXY,no-resolve"
+  - "RULE-SET,ai,PROXY"
+
+  # 大流量下载直连
+  - "DOMAIN-SUFFIX,steamserver.net,DIRECT"
+  - "DOMAIN-SUFFIX,cm.steampowered.com,DIRECT"
+  - "DOMAIN,steamcdn-a.akamaihd.net,DIRECT"
+
+  # 广告与追踪拦截
+  - "RULE-SET,reject,REJECT"
+
+  # 核心域名精准分流
+  - "RULE-SET,proxy,PROXY"
+  - "RULE-SET,direct,DIRECT"
+
+  # 纯 IP 类应用精准捕获
+  - "RULE-SET,telegramcidr,PROXY,no-resolve"
+  - "RULE-SET,cncidr,DIRECT"
+
+  # 漏网之鱼兜底
+  - "MATCH,PROXY"

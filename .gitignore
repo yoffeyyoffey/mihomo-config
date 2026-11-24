@@ -1,0 +1,18 @@
+# ============================================================
+# 安全防护：真实配置与密钥文件绝对不提交到 Git / GitHub！
+# ============================================================
+local/
+dist/
+*.local.yaml
+*.local.yml
+secrets.yaml
+secrets.yml
+.env
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+__pycache__/
+*.pyc
